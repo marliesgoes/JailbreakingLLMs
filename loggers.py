@@ -10,7 +10,7 @@ class WandBLogger:
 
     def __init__(self, args, system_prompt):
         self.logger = wandb.init(
-            project = "jailbreak-llms",
+            project = "jailbreak-llms-vicunavsgpt35",
             config = {
                 "attack_model" : args.attack_model,
                 "target_model" : args.target_model,
@@ -30,12 +30,13 @@ class WandBLogger:
         self.query_to_jailbreak = None
         self.table = pd.DataFrame()
         self.batch_size = args.n_streams
+        self.multiplication_factor = args.n_streams * args.n_iterations
         self.index = args.index
         self.goal = args.goal
         self.jailbreak_prompt = None
         self.jailbreak_response = None
 
-    def log(self, iteration: int, attack_list: list, response_list: list, judge_scores: list):
+    def log(self, iteration: int, attack_list: list, response_list: list, judge_scores: list, x: int):
         
         df = pd.DataFrame(attack_list)
         df["target_response"] = response_list
@@ -47,7 +48,7 @@ class WandBLogger:
         if any([score == 10 for score in judge_scores]):
             jailbreak_ind = judge_scores.index(10)
             if not self.is_jailbroken:
-                self.query_to_jailbreak = self.batch_size * (iteration-1) + jailbreak_ind + 1 # Add one since jailbreak_ind is 0-indexed
+                self.query_to_jailbreak = (self.batch_size * (iteration-1)) + (x*self.multiplication_factor) + jailbreak_ind + 1 # Add one since jailbreak_ind is 0-indexed
                 self.logger.log({"queries_to_jailbreak": self.query_to_jailbreak})
                 self.is_jailbroken = True
 

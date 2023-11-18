@@ -1,4 +1,13 @@
+from openai import OpenAI
 import openai
+
+client = OpenAI(
+    # defaults to os.environ.get("OPENAI_API_KEY")
+    api_key="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",
+    timeout=20.0,
+)
+
+
 import anthropic
 import os
 import time
@@ -19,6 +28,7 @@ class LanguageModel():
         raise NotImplementedError
         
 class HuggingFace(LanguageModel):
+
     def __init__(self,model_name, model, tokenizer):
         self.model_name = model_name
         self.model = model 
@@ -30,8 +40,10 @@ class HuggingFace(LanguageModel):
                         max_n_tokens: int, 
                         temperature: float,
                         top_p: float = 1.0,):
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         inputs = self.tokenizer(full_prompts_list, return_tensors='pt', padding=True)
-        inputs = {k: v.to(self.model.device.index) for k, v in inputs.items()}
+        inputs = {k: v.to(device) for k, v in inputs.items()}
     
         # Batch generation
         if temperature > 0:
@@ -65,7 +77,6 @@ class HuggingFace(LanguageModel):
         output_ids.to('cpu')
         del inputs, output_ids
         gc.collect()
-        torch.cuda.empty_cache()
 
         return outputs_list
 
@@ -83,8 +94,7 @@ class GPT(LanguageModel):
     API_QUERY_SLEEP = 0.5
     API_MAX_RETRY = 5
     API_TIMEOUT = 20
-    openai.api_key = os.getenv("OPENAI_API_KEY")
-
+    
     def generate(self, conv: List[Dict], 
                 max_n_tokens: int, 
                 temperature: float,
@@ -101,17 +111,16 @@ class GPT(LanguageModel):
         output = self.API_ERROR_OUTPUT
         for _ in range(self.API_MAX_RETRY):
             try:
-                response = openai.ChatCompletion.create(
-                            model = self.model_name,
-                            messages = conv,
-                            max_tokens = max_n_tokens,
-                            temperature = temperature,
-                            top_p = top_p,
-                            request_timeout = self.API_TIMEOUT,
-                            )
-                output = response["choices"][0]["message"]["content"]
+                response = client.chat.completions.create(
+                    model = self.model_name,
+                    messages = conv,
+                    max_tokens = max_n_tokens,
+                    temperature = temperature,
+                    top_p = top_p,
+                )
+                output = response.choices[0].message.content
                 break
-            except openai.error.OpenAIError as e:
+            except openai.APIConnectionError as e:
                 print(type(e), e)
                 time.sleep(self.API_RETRY_SLEEP)
         
