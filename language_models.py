@@ -1,55 +1,54 @@
+import google.generativeai as palm
+from typing import Dict, List
+import gc
+import torch
+import time
+import os
+import anthropic
 from openai import OpenAI
 import openai
 
 client = OpenAI(
     # defaults to os.environ.get("OPENAI_API_KEY")
-    api_key="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",
     timeout=20.0,
 )
-
-
-import anthropic
-import os
-import time
-import torch
-import gc
-from typing import Dict, List
-import google.generativeai as palm
 
 
 class LanguageModel():
     def __init__(self, model_name):
         self.model_name = model_name
-    
+
     def batched_generate(self, prompts_list: List, max_n_tokens: int, temperature: float):
         """
         Generates responses for a batch of prompts using a language model.
         """
         raise NotImplementedError
-        
+
+
 class HuggingFace(LanguageModel):
 
-    def __init__(self,model_name, model, tokenizer):
+    def __init__(self, model_name, model, tokenizer):
         self.model_name = model_name
-        self.model = model 
+        self.model = model
         self.tokenizer = tokenizer
         self.eos_token_ids = [self.tokenizer.eos_token_id]
 
-    def batched_generate(self, 
-                        full_prompts_list,
-                        max_n_tokens: int, 
-                        temperature: float,
-                        top_p: float = 1.0,):
+    def batched_generate(self,
+                         full_prompts_list,
+                         max_n_tokens: int,
+                         temperature: float,
+                         top_p: float = 1.0,):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        inputs = self.tokenizer(full_prompts_list, return_tensors='pt', padding=True)
+        inputs = self.tokenizer(
+            full_prompts_list, return_tensors='pt', padding=True)
         inputs = {k: v.to(device) for k, v in inputs.items()}
-    
+
         # Batch generation
         if temperature > 0:
             output_ids = self.model.generate(
                 **inputs,
-                max_new_tokens=max_n_tokens, 
+                max_new_tokens=max_n_tokens,
                 do_sample=True,
                 temperature=temperature,
                 eos_token_id=self.eos_token_ids,
@@ -58,19 +57,20 @@ class HuggingFace(LanguageModel):
         else:
             output_ids = self.model.generate(
                 **inputs,
-                max_new_tokens=max_n_tokens, 
+                max_new_tokens=max_n_tokens,
                 do_sample=False,
                 eos_token_id=self.eos_token_ids,
                 top_p=1,
-                temperature=1, # To prevent warning messages
+                temperature=1,  # To prevent warning messages
             )
-            
+
         # If the model is not an encoder-decoder type, slice off the input tokens
         if not self.model.config.is_encoder_decoder:
             output_ids = output_ids[:, inputs["input_ids"].shape[1]:]
 
         # Batch decoding
-        outputs_list = self.tokenizer.batch_decode(output_ids, skip_special_tokens=True)
+        outputs_list = self.tokenizer.batch_decode(
+            output_ids, skip_special_tokens=True)
 
         for key in inputs:
             inputs[key].to('cpu')
@@ -80,13 +80,14 @@ class HuggingFace(LanguageModel):
 
         return outputs_list
 
-    def extend_eos_tokens(self):        
+    def extend_eos_tokens(self):
         # Add closing braces for Vicuna/Llama eos when using attacker model
         self.eos_token_ids.extend([
             self.tokenizer.encode("}")[1],
-            29913, 
+            29913,
             9092,
             16675])
+
 
 class GPT(LanguageModel):
     API_RETRY_SLEEP = 10
@@ -94,11 +95,11 @@ class GPT(LanguageModel):
     API_QUERY_SLEEP = 0.5
     API_MAX_RETRY = 5
     API_TIMEOUT = 20
-    
-    def generate(self, conv: List[Dict], 
-                max_n_tokens: int, 
-                temperature: float,
-                top_p: float):
+
+    def generate(self, conv: List[Dict],
+                 max_n_tokens: int,
+                 temperature: float,
+                 top_p: float):
         '''
         Args:
             conv: List of dictionaries, OpenAI API format
@@ -112,27 +113,28 @@ class GPT(LanguageModel):
         for _ in range(self.API_MAX_RETRY):
             try:
                 response = client.chat.completions.create(
-                    model = self.model_name,
-                    messages = conv,
-                    max_tokens = max_n_tokens,
-                    temperature = temperature,
-                    top_p = top_p,
+                    model=self.model_name,
+                    messages=conv,
+                    max_tokens=max_n_tokens,
+                    temperature=temperature,
+                    top_p=top_p,
                 )
                 output = response.choices[0].message.content
                 break
             except openai.APIConnectionError as e:
                 print(type(e), e)
                 time.sleep(self.API_RETRY_SLEEP)
-        
+
             time.sleep(self.API_QUERY_SLEEP)
-        return output 
-    
-    def batched_generate(self, 
-                        convs_list: List[List[Dict]],
-                        max_n_tokens: int, 
-                        temperature: float,
-                        top_p: float = 1.0,):
+        return output
+
+    def batched_generate(self,
+                         convs_list: List[List[Dict]],
+                         max_n_tokens: int,
+                         temperature: float,
+                         top_p: float = 1.0,):
         return [self.generate(conv, max_n_tokens, temperature, top_p) for conv in convs_list]
+
 
 class Claude():
     API_RETRY_SLEEP = 10
@@ -141,17 +143,17 @@ class Claude():
     API_MAX_RETRY = 5
     API_TIMEOUT = 20
     API_KEY = os.getenv("ANTHROPIC_API_KEY")
-   
+
     def __init__(self, model_name) -> None:
         self.model_name = model_name
-        self.model= anthropic.Anthropic(
+        self.model = anthropic.Anthropic(
             api_key=self.API_KEY,
-            )
+        )
 
-    def generate(self, conv: List, 
-                max_n_tokens: int, 
-                temperature: float,
-                top_p: float):
+    def generate(self, conv: List,
+                 max_n_tokens: int,
+                 temperature: float,
+                 top_p: float):
         '''
         Args:
             conv: List of conversations 
@@ -176,17 +178,18 @@ class Claude():
             except anthropic.APIError as e:
                 print(type(e), e)
                 time.sleep(self.API_RETRY_SLEEP)
-        
+
             time.sleep(self.API_QUERY_SLEEP)
         return output
-    
-    def batched_generate(self, 
-                        convs_list: List[List[Dict]],
-                        max_n_tokens: int, 
-                        temperature: float,
-                        top_p: float = 1.0,):
+
+    def batched_generate(self,
+                         convs_list: List[List[Dict]],
+                         max_n_tokens: int,
+                         temperature: float,
+                         top_p: float = 1.0,):
         return [self.generate(conv, max_n_tokens, temperature, top_p) for conv in convs_list]
-        
+
+
 class PaLM():
     API_RETRY_SLEEP = 10
     API_ERROR_OUTPUT = "$ERROR$"
@@ -200,10 +203,10 @@ class PaLM():
         self.model_name = model_name
         palm.configure(api_key=self.API_KEY)
 
-    def generate(self, conv: List, 
-                max_n_tokens: int, 
-                temperature: float,
-                top_p: float):
+    def generate(self, conv: List,
+                 max_n_tokens: int,
+                 temperature: float,
+                 top_p: float):
         '''
         Args:
             conv: List of dictionaries, 
@@ -222,7 +225,7 @@ class PaLM():
                     top_p=top_p
                 )
                 output = completion.last
-                
+
                 if output is None:
                     # If PaLM refuses to output and returns None, we replace it with a default output
                     output = self.default_output
@@ -234,13 +237,13 @@ class PaLM():
             except Exception as e:
                 print(type(e), e)
                 time.sleep(self.API_RETRY_SLEEP)
-        
+
             time.sleep(1)
         return output
-    
-    def batched_generate(self, 
-                        convs_list: List[List[Dict]],
-                        max_n_tokens: int, 
-                        temperature: float,
-                        top_p: float = 1.0,):
+
+    def batched_generate(self,
+                         convs_list: List[List[Dict]],
+                         max_n_tokens: int,
+                         temperature: float,
+                         top_p: float = 1.0,):
         return [self.generate(conv, max_n_tokens, temperature, top_p) for conv in convs_list]
