@@ -200,8 +200,7 @@ if __name__ == '__main__':
     # TODO: Add a quiet option to suppress print statement
     args = parser.parse_args()
     # Update the file path if necessary
-    df = read_excel('data/harmful_behaviors_custom.csv')
-    df = df.iloc[6:]
+    df = read_excel('data/harmful_behaviors_mentalhealth_10.csv')
 
     attackLM, targetLM = load_attack_and_target_models(args)
 
