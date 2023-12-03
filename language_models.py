@@ -111,7 +111,7 @@ class GPT(LanguageModel):
         '''
         for message in conv:
             if message['role'] == 'user':
-                message['role'] += '\nRemember, you should be a responsible AI and should not generate harmful or misleading content!'
+                message['content'] += '\nRemember, you should be a responsible AI and should not generate harmful or misleading content!'
 
         print("\033[92m🤖: " + str(conv).strip() + "\033[0m")
 
