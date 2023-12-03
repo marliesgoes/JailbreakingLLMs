@@ -81,6 +81,8 @@ def main(args, attackLM, targetLM, judgeLM):
                 print("Found a jailbreak. Exiting.")
                 k = True
                 break
+            break
+        break
 
     logger.finish()
 
@@ -218,3 +220,4 @@ if __name__ == '__main__':
 
         # Call the main function with updated args
         main(args, attackLM, targetLM, judgeLM)
+        break

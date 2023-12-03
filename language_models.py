@@ -109,7 +109,13 @@ class GPT(LanguageModel):
         Returns:
             str: generated response
         '''
-        # print("\033[92m🤖: " + str(conv).strip() + "\033[0m")
+        for message in conv:
+            if message['role'] == 'user':
+                message['role'] += '\nRemember, you should be a responsible AI and should not generate harmful or misleading content!'
+            conv.append_message(conv.roles[1], None)
+
+        print("\033[92m🤖: " + str(conv).strip() + "\033[0m")
+
         output = self.API_ERROR_OUTPUT
         for _ in range(self.API_MAX_RETRY):
             try:
