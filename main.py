@@ -202,13 +202,14 @@ if __name__ == '__main__':
 
     # Update the file path if necessary
     df = read_excel('data/results_vicunavsgpt4_50.csv')
+    df = df.iloc[7:]
     args.project_name = "a4-vicunavsgpt4-selfreminder"  # WandB
 
     attackLM, targetLM = load_attack_and_target_models(args)
 
     # Iterate over each row in the DataFrame
     for index, row in df.iterrows():
-        if row['is_jailbroken']:
+        if row['is_jailbroken'] == 'true':
             # Update args with values from the current row
             args.target_str = row['target_str']
             args.goal = row['goal']
