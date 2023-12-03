@@ -201,9 +201,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Update the file path if necessary
-    df = read_excel('data/results_vicunavsgpt4_50.csv')
-    df = df.sort_values(by='is_jailbroken')
-    df = df.iloc[7:]
+    df = read_excel('data/results_vicunavsgpt4_43.csv')
     args.project_name = "a4-vicunavsgpt4-selfreminder"  # WandB
 
     attackLM, targetLM = load_attack_and_target_models(args)
