@@ -201,8 +201,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Update the file path if necessary
-    df = read_excel('data/results_vicunavsgpt4_40.csv')
-    args.project_name = "a4-vicunavsgpt4-selfreminder"  # WandB
+    df = read_excel('data/results_vicunavsgpt4_50.csv')
+    args.project_name = "a4-vicunavsvicuna-selfreminder"  # WandB
 
     attackLM, targetLM = load_attack_and_target_models(args)
 
