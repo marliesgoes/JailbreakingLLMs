@@ -10,7 +10,7 @@ class WandBLogger:
 
     def __init__(self, args, system_prompt):
         self.logger = wandb.init(
-            project="a4-vicunavsgpt4-10",
+            project="a4-vicunavsgpt4-selfreminder",
             config={
                 "attack_model": args.attack_model,
                 "target_model": args.target_model,
@@ -49,7 +49,8 @@ class WandBLogger:
             jailbreak_ind = judge_scores.index(10)
             if not self.is_jailbroken:
                 self.query_to_jailbreak = (self.batch_size * (iteration-1)) + (
-                    x*self.multiplication_factor) + jailbreak_ind + 1  # Add one since jailbreak_ind is 0-indexed
+                    # Add one since jailbreak_ind is 0-indexed
+                    x*self.multiplication_factor) + jailbreak_ind + 1
                 self.logger.log(
                     {"queries_to_jailbreak": self.query_to_jailbreak})
                 self.is_jailbroken = True
