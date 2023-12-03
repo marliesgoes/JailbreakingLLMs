@@ -10,7 +10,7 @@ class WandBLogger:
 
     def __init__(self, args, system_prompt):
         self.logger = wandb.init(
-            project="a4-vicunavsgpt4-selfreminder",
+            project=args.project_name,
             config={
                 "attack_model": args.attack_model,
                 "target_model": args.target_model,

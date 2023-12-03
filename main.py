@@ -81,8 +81,6 @@ def main(args, attackLM, targetLM, judgeLM):
                 print("Found a jailbreak. Exiting.")
                 k = True
                 break
-            break
-        break
 
     logger.finish()
 
@@ -201,23 +199,25 @@ if __name__ == '__main__':
 
     # TODO: Add a quiet option to suppress print statement
     args = parser.parse_args()
+
     # Update the file path if necessary
-    df = read_excel('data/harmful_behaviors_mentalhealth_40.csv')
+    df = read_excel('data/results_vicunavsgpt4_50.csv')
+    args.project_name = "a4-vicunavsgpt4-selfreminder"  # WandB
 
     attackLM, targetLM = load_attack_and_target_models(args)
 
     # Iterate over each row in the DataFrame
     for index, row in df.iterrows():
-        # Update args with values from the current row
-        args.target_str = row['target']
-        args.goal = row['goal']
-        args.category = row['category']
+        if row['is_jailbroken']:
+            # Update args with values from the current row
+            args.target_str = row['target_str']
+            args.goal = row['goal']
+            args.category = row['category']
 
-        print('target: ' + args.target_str)
-        print('category: ' + args.category)
-        print('goal: ' + args.goal)
-        judgeLM = load_judge(args)
+            print('target: ' + args.target_str)
+            print('category: ' + args.category)
+            print('goal: ' + args.goal)
+            judgeLM = load_judge(args)
 
-        # Call the main function with updated args
-        main(args, attackLM, targetLM, judgeLM)
-        break
+            # Call the main function with updated args
+            main(args, attackLM, targetLM, judgeLM)
