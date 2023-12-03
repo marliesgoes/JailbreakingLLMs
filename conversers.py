@@ -125,8 +125,8 @@ class AttackLM():
                 break
 
         if any([output for output in valid_outputs if output is None]):
-            print(f"Failed to generate output after {
-                  self.max_n_attack_attempts} attempts. Terminating.")
+            print(f"Failed to generate output after \
+                {self.max_n_attack_attempts} attempts. Terminating.")
         return valid_outputs
 
 
