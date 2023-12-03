@@ -109,7 +109,7 @@ class GPT(LanguageModel):
         Returns:
             str: generated response
         '''
-        print("\033[92m🤖: " + str(conv).strip() + "\033[0m")
+        # print("\033[92m🤖: " + str(conv).strip() + "\033[0m")
         output = self.API_ERROR_OUTPUT
         for _ in range(self.API_MAX_RETRY):
             try:
