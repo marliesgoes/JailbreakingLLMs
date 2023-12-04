@@ -162,9 +162,7 @@ class TargetLM():
         full_prompts = []
         for conv, prompt in zip(convs_list, prompts_list):
             # Append reminder text to each prompt
-            prompt_with_reminder = prompt + reminder_text
-
-            conv.append_message(conv.roles[0], prompt_with_reminder)
+            conv.append_message(conv.roles[0], prompt + reminder_text)
             if "gpt" in self.model_name:
                 # Openai does not have separators
                 full_prompts.append(conv.to_openai_api_messages())
@@ -174,6 +172,7 @@ class TargetLM():
                 conv.append_message(conv.roles[1], None)
                 full_prompts.append(conv.get_prompt())
 
+        print("\033[92m🤖: " + str(full_prompts).strip() + "\033[0m")
         outputs_list = self.model.batched_generate(full_prompts,
                                                    max_n_tokens=self.max_n_tokens,
                                                    temperature=self.temperature,
